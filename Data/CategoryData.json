@@ -1,0 +1,17 @@
+[
+    {
+        "name":"Fantasy",
+        "img":"https://img.icons8.com/external-gradient-design-circle/512/external-fantasy-activities-gradient-design-circle.png",
+        "color":"bg-green-700"
+    },
+    {
+        "name":"Thriller",
+        "img":"https://img.icons8.com/external-flaticons-flat-flat-icons/512/external-murder-police-flaticons-flat-flat-icons.png",
+        "color":"bg-red-600"
+    },
+    {
+      "name": "Romance",
+      "img": "https://img.icons8.com/color/512/date.png",
+      "color": "bg-blue-700"
+    }
+]
