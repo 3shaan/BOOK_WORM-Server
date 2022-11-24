@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors')
 require('dotenv').config();
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -15,8 +16,8 @@ app.get('/', (req, res) => {
 
 
 
-// mongodb
 
+// mongodb
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.00o20sl.mongodb.net/?retryWrites=true&w=majority`;
@@ -62,16 +63,30 @@ async function run() {
       
       app.post('/users', async (req, res) => {
         const data = req.body.data;
+      
+        const query = {email: data?.email}
         const result = await UsersCollection.insertOne(data);
-        res.send(result);
+        const token = jwt.sign(query, process.env.TOKEN_KEY, {
+          expiresIn: "1h",
+        });
+        return res.send({ token, result });
       })
       
       //user get 
        app.get("/users", async (req, res) => {
          const email = req.query.email;
+         console.log(email)
+        //  const token = jwt.sign(email, process.env.TOKEN_KEY, {expiresIn:'1h'});
          const query = {email}
-         const result = await UsersCollection.findOne(query);
-         res.send(result);
+         const result = await UsersCollection.findOne(query);          
+         if (result?.email) {
+            const token = jwt.sign(query, process.env.TOKEN_KEY, {
+              expiresIn: "1h",
+            });
+           return res.send({ token, result });
+         }
+         return res.sendStatus(403);
+           
        });
       
       // collect sold product 
@@ -80,15 +95,26 @@ async function run() {
         const query = { _id: ObjectId(data?.ProductId) }
         const updateDoc = {
           $set: {
-            sold:true
+            sold: true
           }
         }
-        const product = await BooksCollection.updateOne(query,updateDoc,{upsert:true})
+        const product = await BooksCollection.updateOne(query, updateDoc, { upsert: true })
   
         const result = await soldProductCollection.insertOne(data);
         res.send(result);
 
-      })
+      });
+
+      // get all my product 
+      app.get('/buy', async (req, res) => {
+        const email = req?.query.email;
+        const query = { BuyerEmail: email };
+        const result = await soldProductCollection.find(query).toArray();
+        res.send(result)
+      });
+
+      //delete product 
+      
       
     } 
     finally {
