@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors')
 require('dotenv').config();
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -9,6 +10,7 @@ const port = process.env.PORT || 5000;
 //middle ware 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
 app.get('/', (req, res) => {
     res.send('book worm server is running')
@@ -237,7 +239,62 @@ async function run() {
       });
 
       // add product to wishlist
+      app.post('/wishlist', async (req, res) => {
+        const data = req.body;
+        const id = req.query.id;
+        const email = req.query.email;
+        // check data exist or not 
+        const query = { ProductId: id, buyerEmail :email};
+        const checkData = await WishlistCollection.findOne(query);
+        console.log(checkData);
+        if (checkData) {
+           return res.send({message: 'This product is already in your wishlist'})
+        }
+        //post data
+        const result = await WishlistCollection.insertOne(data);
+          return res.send(result);
+      })
 
+      // get wishlist product 
+      app.get('/wishlist', async (req, res) => {
+        const email = req.query.email;
+        const query = { buyerEmail: email };
+        const result = await WishlistCollection.find(query).toArray();
+        res.send(result);
+      })
+      
+      // delete wishlist product
+         app.delete("/wishlist/:id", async (req, res) => {
+           const id = req.params.id;
+           const query = { _id: ObjectId(id) };
+           const result = await WishlistCollection.deleteOne(query);
+           res.send(result);
+         });
+
+      // get single my product
+      app.get('/myproduct/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) };
+        const result = await soldProductCollection.findOne(query);
+        res.send(result);
+      })
+
+
+      // payments
+      app.post('/payment', async (req, res) => {
+        const data = req.body.ProductPrice;
+        // console.log(data * 100);
+        const payment = await stripe.paymentIntents.create({
+          amount: `${data*100}`,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+        res.send({
+          clientSecret: payment.client_secret,
+        });
+      })
+
+      
       
     } 
     finally {
