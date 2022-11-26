@@ -53,6 +53,7 @@ async function run() {
         const BooksCollection = client.db('books-worm').collection('books');
         const UsersCollection = client.db('books-worm').collection('users');
         const soldProductCollection = client.db('books-worm').collection('soldProduct');
+        const WishlistCollection = client.db('books-worm').collection('wishlist');
 
 
         app.get("/category",async (req, res) => {
@@ -134,12 +135,13 @@ async function run() {
       // collect sold product 
       app.post("/buy", verifyToken, async (req, res) => {
         const token = req.decoded.email;
-        console.log(token);
+        // console.log(token);
         const data = req.body.buyProduct;
         const query = { _id: ObjectId(data?.ProductId) };
         const updateDoc = {
           $set: {
             sold: true,
+            advertise:false,
           },
         };
         const product = await BooksCollection.updateOne(query, updateDoc, {
@@ -219,7 +221,23 @@ async function run() {
         res.send(result);
       });
 
-      
+      // delete Product
+      app.delete('/products/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: ObjectId(id) };
+        const result = await BooksCollection.deleteOne(query);
+        res.send(result);
+      });
+
+      // advertised product
+      app.get('/advertised', async (req, res) => {
+        const query = { advertise: true };
+        const result = await BooksCollection.find(query).toArray();
+        res.send(result);
+      });
+
+      // add product to wishlist
+
       
     } 
     finally {
