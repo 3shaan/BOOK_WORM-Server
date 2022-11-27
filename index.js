@@ -27,7 +27,7 @@ const verifyToken = (req,res,next) => {
     process.env.TOKEN_KEY,
     (err, decoded) => {
       if (err) {
-        return res.sendStatus(403);
+        return res.status(403).send({message:'Please log in again'});
       }
       req.decoded = decoded;
       return next();
@@ -56,6 +56,7 @@ async function run() {
         const UsersCollection = client.db('books-worm').collection('users');
         const soldProductCollection = client.db('books-worm').collection('soldProduct');
         const WishlistCollection = client.db('books-worm').collection('wishlist');
+        const PaymentCollection = client.db('books-worm').collection('payment');
 
 
         app.get("/category",async (req, res) => {
@@ -65,15 +66,15 @@ async function run() {
 
         // get books by category
 
-        app.get("/category/:books", async (req, res) => {
+        app.get("/category/:books", verifyToken, async (req, res) => {
           const books = req.params.books;
-            const query = { genre: books }
-            const result = await BooksCollection.find(query).toArray();
-            res.send(result);
+          const query = { genre: books };
+          const result = await BooksCollection.find(query).toArray();
+          res.send(result);
         });
         
         // get book details by book id 
-           app.get("/books/:id", async (req, res) => {
+           app.get("/books/:id",verifyToken, async (req, res) => {
                const id = req.params.id;
              const query = { _id:ObjectId(id) };
                const result = await BooksCollection.findOne(query);
@@ -90,12 +91,13 @@ async function run() {
         const token = jwt.sign(query, process.env.TOKEN_KEY, {
           expiresIn: "1h",
         });
-        return res.send({ token, result });
+        return res.send({ token, result }); 
       })
       
       //user get 
        app.get("/users", async (req, res) => {
          const email = req.query.email;
+
         //  const token = jwt.sign(email, process.env.TOKEN_KEY, {expiresIn:'1h'});
          const query = {email}
          const result = await UsersCollection.findOne(query);          
@@ -109,8 +111,20 @@ async function run() {
            
        });
       
+      //get users with google signup
+      // I set different email and token so that if user log in again again with google , its doesn't add database multiple time 
+      app.get('/google_user',async (req, res) => {
+        const email = req.query.email;
+        const query = { email };
+         const token = jwt.sign(query, process.env.TOKEN_KEY, {
+           expiresIn: "1h",
+         });
+        const result = await UsersCollection.findOne(query);
+        res.send({ result, token });
+      })
+      
       // Delete users 
-      app.delete('/users/:id', async (req, res) => {
+      app.delete('/users/:id',verifyToken, async (req, res) => {
         const id = req.params.id;
         const query = { _id: ObjectId(id) };
         const result = await UsersCollection.deleteOne(query);
@@ -155,7 +169,7 @@ async function run() {
       });
 
       // get all my product 
-      app.get('/buy', async (req, res) => {
+      app.get('/buy',verifyToken, async (req, res) => {
         const email = req?.query.email;
         const query = { BuyerEmail: email };
         const result = await soldProductCollection.find(query).toArray();
@@ -163,7 +177,7 @@ async function run() {
       });
 
       //delete product 
-      app.delete('/buy/:id', async (req, res) => {
+      app.delete('/buy/:id',verifyToken, async (req, res) => {
         const id = req.params.id;
         const query = { _id: ObjectId(id) };
         const product = await soldProductCollection.findOne(query);
@@ -179,14 +193,14 @@ async function run() {
       });
 
       // add product 
-      app.post('/books', async (req, res) => {
+      app.post('/books',verifyToken, async (req, res) => {
         const data = req.body;
         const result = await BooksCollection.insertOne(data);
         res.send(result);
       });
 
       // get seller product data 
-      app.get("/products", async (req, res) => {
+      app.get("/products",verifyToken, async (req, res) => {
         const email = req.query.email;
         const query = { seller_email: email };
         const result = await BooksCollection.find(query).toArray();
@@ -194,14 +208,14 @@ async function run() {
       });
       
       //get buyer information
-      app.get('/buyer', async (req, res) => {
+      app.get('/buyer',verifyToken, async (req, res) => {
         const email = req.query.email;
         const query = { sellerEmail: email };
         const result = await soldProductCollection.find(query).toArray();
         res.send(result);
       });
 
-      app.get('/users_type', async (req, res) => {
+      app.get('/users_type',verifyToken, async (req, res) => {
         const type = req.query.type;
         const query = { role: type };
         // console.log(query);
@@ -211,7 +225,7 @@ async function run() {
       });
 
       // advertise Products
-      app.put('/advertise/:id', async (req, res) => {
+      app.put('/advertise/:id',verifyToken, async (req, res) => {
         const id = req.params.id;
         const query = { _id: ObjectId(id) };
         const updateDoc = {
@@ -224,7 +238,7 @@ async function run() {
       });
 
       // delete Product
-      app.delete('/products/:id', async (req, res) => {
+      app.delete('/products/:id',verifyToken, async (req, res) => {
         const id = req.params.id;
         const query = { _id: ObjectId(id) };
         const result = await BooksCollection.deleteOne(query);
@@ -239,7 +253,7 @@ async function run() {
       });
 
       // add product to wishlist
-      app.post('/wishlist', async (req, res) => {
+      app.post('/wishlist',verifyToken, async (req, res) => {
         const data = req.body;
         const id = req.query.id;
         const email = req.query.email;
@@ -256,7 +270,7 @@ async function run() {
       })
 
       // get wishlist product 
-      app.get('/wishlist', async (req, res) => {
+      app.get('/wishlist',verifyToken, async (req, res) => {
         const email = req.query.email;
         const query = { buyerEmail: email };
         const result = await WishlistCollection.find(query).toArray();
@@ -264,7 +278,7 @@ async function run() {
       })
       
       // delete wishlist product
-         app.delete("/wishlist/:id", async (req, res) => {
+         app.delete("/wishlist/:id",verifyToken, async (req, res) => {
            const id = req.params.id;
            const query = { _id: ObjectId(id) };
            const result = await WishlistCollection.deleteOne(query);
@@ -279,19 +293,44 @@ async function run() {
         res.send(result);
       })
 
+      //wishlist
+      app.get('/wishlist_payment/:id', async (req, res) => {
+        const id = req?.params?.id;
+        const query = { _id: ObjectId(id) };
+        const result = await WishlistCollection.findOne(query);
+        res.send(result);
+      })
+
 
       // payments
-      app.post('/payment', async (req, res) => {
+      app.post('/payments', async (req, res) => {
         const data = req.body.ProductPrice;
-        // console.log(data * 100);
         const payment = await stripe.paymentIntents.create({
-          amount: `${data*100}`,
+          amount: `${data * 100}`,
           currency: "usd",
           payment_method_types: ["card"],
         });
         res.send({
           clientSecret: payment.client_secret,
         });
+      });
+
+      // payment stored in database 
+      app.post('/payment_success',verifyToken, async (req, res) => {
+        const data = req.body;
+        const ProductId = data.ProductId;
+        const query = { _id: ObjectId(ProductId) };
+        const query2 = {ProductId}
+        const updateDoc = {
+          $set: {
+            payment: true
+          }
+        };
+        const product = await BooksCollection.updateOne(query, updateDoc, { upsert: true });
+        const soldProduct = await soldProductCollection.updateOne(query2, updateDoc, { upsert: true });
+
+        const result = await PaymentCollection.insertOne(data);
+        res.send(result);
       })
 
       
