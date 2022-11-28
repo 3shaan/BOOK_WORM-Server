@@ -336,9 +336,10 @@ async function run() {
 
       /// blogs get 
       app.get('/blogs', async (req, res) => {
-        const result =  await BlogsCollection.find({}).toArray();
+        const query = {};
+        const result = await BlogsCollection.find(query).toArray();
         res.send(result);
-      })
+      });
       
       
     } 
@@ -351,6 +352,6 @@ run().catch(err => console.log(err));
 
 
 app.listen(port, () => {
-    console.log('server is running')
-})
+  console.log('server is running')
+});
 
