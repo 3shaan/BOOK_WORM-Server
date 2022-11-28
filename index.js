@@ -57,6 +57,7 @@ async function run() {
         const soldProductCollection = client.db('books-worm').collection('soldProduct');
         const WishlistCollection = client.db('books-worm').collection('wishlist');
         const PaymentCollection = client.db('books-worm').collection('payment');
+        const BlogsCollection = client.db('books-worm').collection('blogs');
 
 
         app.get("/category",async (req, res) => {
@@ -316,11 +317,11 @@ async function run() {
       });
 
       // payment stored in database 
-      app.post('/payment_success',verifyToken, async (req, res) => {
+      app.post('/payment_success', verifyToken, async (req, res) => {
         const data = req.body;
         const ProductId = data.ProductId;
         const query = { _id: ObjectId(ProductId) };
-        const query2 = {ProductId}
+        const query2 = { ProductId }
         const updateDoc = {
           $set: {
             payment: true
@@ -331,8 +332,13 @@ async function run() {
 
         const result = await PaymentCollection.insertOne(data);
         res.send(result);
-      })
+      });
 
+      /// blogs get 
+      app.get('/blogs', async (req, res) => {
+        const result =  await BlogsCollection.find({}).toArray();
+        res.send(result);
+      })
       
       
     } 
