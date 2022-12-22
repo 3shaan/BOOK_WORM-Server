@@ -64,18 +64,25 @@ async function run() {
             const result = await categoriesCollection.find({}).toArray();
          res.send(result);
         });
+      
+      // get all books list 
+      app.get('/allproducts', async (req, res) => {
+        const result = await BooksCollection.find({}).toArray();
+        res.send(result);
+      })
 
         // get books by category
 
-        app.get("/category/:books", verifyToken, async (req, res) => {
+        app.get("/category/:books", async (req, res) => {
           const books = req.params.books;
+          console.log(books)
           const query = { genre: books };
           const result = await BooksCollection.find(query).toArray();
           res.send(result);
         });
         
         // get book details by book id 
-           app.get("/books/:id",verifyToken, async (req, res) => {
+           app.get("/books/:id", async (req, res) => {
                const id = req.params.id;
              const query = { _id:ObjectId(id) };
                const result = await BooksCollection.findOne(query);
